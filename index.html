@@ -1,0 +1,33 @@
+<html>
+<title>Fablab fridge is cool</title>
+<script>
+function ajax() {
+var request = new XMLHttpRequest();
+request.open('GET', '/get/temp/', true);
+
+request.onload = function() {
+  if (request.status >= 200 && request.status < 400) {
+    // Success!
+    var data = JSON.parse(request.responseText);
+    document.getElementById('temp').innerHTML = data.temp;	
+  } else {
+    // We reached our target server, but it returned an error
+
+  }
+};
+
+request.onerror = function() {
+  // There was a connection error of some sort
+};
+
+request.send();
+}
+
+</script>
+<body>
+<h1>Fablab de kaasfabriek alkmaar presents:</h1>
+<h2>The fablab fridge</h2>
+Current temperature is: <span id='temp'></span><br/>
+<button onclick='ajax();'>Get new temperature</button>
+</body>
+</html>

@@ -65,7 +65,7 @@ boolean donescrolling = true;
 // but is more 'smooth'
 #define NUMSAMPLES 5
 // The beta coefficient of the thermistor (usually 3000-4000)
-#define BCOEFFICIENT 4500
+#define BCOEFFICIENT 2994.04
 // the value of the 'other' resistor
 #define SERIESRESISTOR 100000   
 uint16_t samples[NUMSAMPLES];
@@ -77,11 +77,11 @@ SoftwareSerial mySerial(6, 7); // RX, TX
 NullSerial noDebug;
 #define debugSerial noDebug
 #define debugSerial2 noDebug
-#define debugSerial3 noDebug
+#define debugSerial3 Serial
 #define WifiSerial mySerial
 
 String jsonTemp;
-#include "password.h"
+
 void setup(void) {
   analogReference(EXTERNAL);
   // initialize inputs/outputs
@@ -581,7 +581,7 @@ void setupWifi() {
     
   }
   // login details
-  WifiSerial.println("AT+CWSAP=\"fablabfridge\",\"" + password + "\",5,3");
+  WifiSerial.println("AT+CWSAP=\"fablabfridge\",\"fablabfridge\",5,3");
   delay(200);
   while(WifiSerial.available()) {
     

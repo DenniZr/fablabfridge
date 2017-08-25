@@ -80,7 +80,7 @@ NullSerial noDebug;
 #define debugSerial3 Serial
 #define WifiSerial mySerial
 
-String jsonTemp;
+char jsonTemp[10];
 
 void setup(void) {
   analogReference(EXTERNAL);
@@ -194,11 +194,13 @@ void searchIPD(uint8_t input)
 }
 
 void handleIPDMessage() {
+  int j;
   debugSerial2.println("handleIPDMessage");
   // read the rest
   String idlen = WifiSerial.readStringUntil(':');
   int comma = idlen.indexOf(',');
-  String id = idlen.substring(0,comma);
+  String id = idlen.substring(0, comma);
+  
   debugSerial3.print("Id of incoming is ");
   debugSerial3.println(id);
 
@@ -214,11 +216,29 @@ void handleIPDMessage() {
   debugSerial2.println(dataLength, DEC);
 
   String slash = WifiSerial.readStringUntil('\n');
+  debugSerial3.println("slash");
   debugSerial3.println(slash);
 
   int first = slash.indexOf(' ');
   int last = slash.lastIndexOf(' ');
-  String url = slash.substring(first+1,last);
+  char * url = (char *) malloc(13);
+  debugSerial3.print("first");
+  debugSerial3.println(first);
+  debugSerial3.print("last");
+  debugSerial3.println(last);
+
+  // in url put substring first+1 to last
+  for(j = 0; j < (last - (first+1)) && j < 12; j++) {
+    debugSerial3.print(j+(first+1));
+    debugSerial3.print(":");
+    debugSerial3.print(slash[j+(first+1)]);
+    debugSerial3.print("-");
+    strcpy(url[j], slash[j+(first+1)]);
+  }
+  
+  url[j + 1] =  '\0';
+  slash = ""; 
+  
   debugSerial3.print("URL: ");
   debugSerial3.println(url);
   /* empty buffer */
@@ -228,13 +248,17 @@ void handleIPDMessage() {
   debugSerial3.println();
   int gotoUrl = switchURL(url);
   debugSerial3.println(gotoUrl);
-  String sendData = servePage(gotoUrl);
+  char * sendData = servePage(gotoUrl);
   debugSerial3.println(sendData);
-  if(sendData.length() != 0) sendToVisitor(id, sendData);
+  if(strlen(sendData) != 0) sendToVisitor(id, sendData);
   else debugSerial3.println("Senddata is zero!!");
+  free(sendData);
+  free(url);
 }
 
-void sendToVisitor(String id, String pageData) {
+void sendToVisitor(String idString, char * pageData) {
+  char id[4];
+  idString.toCharArray(id,4);
   delay(200);
   while(WifiSerial.available()) {
     WifiSerial.read();
@@ -248,107 +272,93 @@ void sendToVisitor(String id, String pageData) {
   }
   debugSerial3.println("pageData: ");
   debugSerial3.println(pageData);
-  if(!pageData.length() == 0)WifiSerial.println("AT+CIPSEND=" + id + "," + String(pageData.length(), DEC));
+  if(!strlen(pageData) == 0) {
+    char * cipsend = (char *) malloc(19);
+    int len = strlen(pageData);
+    if(strcmp(pageData, "frontpage") == 0) len = 642;
+    sprintf(cipsend, "AT+CIPSEND=%s,%d",id, len);
+    WifiSerial.println(cipsend);
+    free(cipsend);
+  }
   delay(200);
   while(WifiSerial.available()) {
     debugSerial3.write(WifiSerial.read());
   }
-  WifiSerial.print(pageData);
+  if(strcmp(pageData, "frontpage") == 0) WifiSerial.print(F("HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\n<html><title>Fablab fridge is cool</title><script>function ajax(){var request=new XMLHttpRequest();request.open('GET', '/get/temp/', true);request.onload=function(){if (request.status >=200 && request.status < 400){var data=JSON.parse(request.responseText); document.getElementById('temp').innerHTML=data.temp;}else{}};request.onerror=function(){};request.send();}</script><body><h1>Fablab de kaasfabriek alkmaar presents:</h1><h2>The fablab fridge</h2>Current temperature is: <span id='temp'></span><br/><button onclick='ajax();'>Get new temperature</button></body></html>"));
+  else WifiSerial.print(pageData);
   delay(200);
   
   while(WifiSerial.available()) {
     WifiSerial.read();
   }
   delay(2000);
-  WifiSerial.println("AT+CIPCLOSE=" + id);
+  char * cipclose = (char *) malloc(16);
+  sprintf(cipclose, "AT+CIPCLOSE=%s", id);
+  WifiSerial.println(cipclose);
+  free(cipclose);
   delay(200);
   while(WifiSerial.available()) {
     debugSerial3.write(WifiSerial.read());
   }
 }
 
-String servePage(int urlNumber) {
+char * servePage(int urlNumber) {
   
-  String datatest;
-  String json;
+  char * datatest = (char *) malloc(88+32);
+  char * json;
   int contentLength = 0;
-  datatest = "HTTP/1.1 200 OK\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: text/html\n";
-    datatest += "\n";
-    datatest += "<html><body>";
-    datatest += String(urlNumber, DEC);
-    datatest += "</body></html>";
+  sprintf(datatest, "HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\n<html><body>%d</body></html>", urlNumber);
 
   if(urlNumber == 1001) {
+    sprintf(datatest, "frontpage");
     
-    datatest = "HTTP/1.1 200 OK\n";
+    /*datatest = "HTTP/1.1 200 OK\n";
     datatest += "Server: FablabFridge\n";
     datatest += "Connection: close\n";
     datatest += "Content-Type: text/html\n";
     datatest += "\n";
     datatest += "<html><body>";
     datatest += "welkom";
-    datatest += "</body></html>";
-    //datatest = "HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\n<html><title>Fablab fridge is cool</title><script>function ajax(){var request=new XMLHttpRequest();request.open('GET', '/get/temp/', true);request.onload=function(){if (request.status >=200 && request.status < 400){// Success! var data=JSON.parse(request.responseText); document.getElementById('temp').innerHTML=data.temp;}else{// We reached our target server, but it returned an error}};request.onerror=function(){// There was a connection error of some sort};request.send();}</script><body><h1>Fablab de kaasfabriek alkmaar presents:</h1><h2>The fablab fridge</h2>Current temperature is: <span id='temp'></span><br/><button onclick='ajax();'>Get new temperature</button></body></html>";
+    datatest += "</body></html>";*/
   }
   if(urlNumber == 1002) {
     json = getTempJsonResponse();   
-    contentLength = json.length();
-    datatest = "HTTP/1.1 200 OK\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: application/json\n";
-    datatest += "\n";
-    datatest += json;
+    contentLength = strlen(json);
   }  
   if(urlNumber == 1003) {
-    json = getSuccesJsonResponse("true", "just because");    
-    contentLength = json.length();
-    datatest = "HTTP/1.1 200 OK\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: application/json\n";
-    datatest += "\n";
-    datatest += json;
+    json = getSuccesJsonResponse(1, "just because");    
+    contentLength = strlen(json);  
   }    
+
+ 
   if(urlNumber == 1004) {
-    json = getSuccesJsonResponse("false", jsonTemp);
-    contentLength = json.length();
-    datatest = "HTTP/1.1 200 OK\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: application/json\n";
-    datatest += "\n";
-    datatest += json;
+    json = getSuccesJsonResponse(0, jsonTemp);
+    contentLength = strlen(json);
   }      
+  if(urlNumber == 1002 || urlNumber == 1003 || urlNumber == 1004) 
+    sprintf(datatest, "HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: application/json\n\n%s", json);
+
   if(urlNumber == 404) {    
-    datatest = "HTTP/1.1 404 Not Found\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: text/html\n";
-    datatest += "\n";
-    datatest += "niet gevonden";
+    sprintf(datatest, "HTTP/1.1 404 Not Found\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\nniet gevonden");
   }      
-  if(datatest.length() == 0){
-    debugSerial3.println("Senddata is zero!!");
-  
-    debugSerial3.print("urlnumber is: ");
-    debugSerial3.println(urlNumber);
-  }
+  free(json);
   return datatest;
 }
 
-String getTempJsonResponse() {
-  String json = "{ \"temp\": " + String(temperature, 2)  + " }";
+char * getTempJsonResponse() {
+  
+  char * json = (char *) malloc ((11+3+6+1));
+  sprintf(json, "{ \"temp\": %f3.2 }", temperature);
   debugSerial3.print("JSON: ");
   debugSerial3.println(json);
   return json;
 }
 
-String getSuccesJsonResponse(String truefalse, String reason) {
-  String json = "{ \"success\": " + truefalse  + ", \"reason\": \"" + reason + "\" }";
+char * getSuccesJsonResponse(boolean truefalse, char *reason) {
+  char * json = (char *) malloc ((30+10+1));
+ 
+  sprintf(json, "{ \"success\": %b, \"reason\": \"%s\" }", truefalse, reason);
+  
   debugSerial3.print("JSON: ");
   debugSerial3.println(json);
   return json;
@@ -356,7 +366,7 @@ String getSuccesJsonResponse(String truefalse, String reason) {
 
 int tryToSetTempTo(float target) {
   if(target > maxtemp || target < mintemp) {
-    jsonTemp = "minMaxTemp";
+    strcat(jsonTemp, "minMaxTemp");
     return 1004;
   }
   else {
@@ -365,23 +375,38 @@ int tryToSetTempTo(float target) {
   }
 }
 
-int switchURL(String url) {
+int switchURL(char * url) {
   // main page?
-  if(url.equals("/")) {    
+  if(strcmp(url, "/")) {    
     return 1001; // start page
   }
   // get action?
-  if(url.startsWith("/get/temp/")) {    
+  if(strcmp(url, "/get/temp/")) {    
     return 1002; // temp get page
   }
   
   // set action?
-  if(url.startsWith("/set/")) {
+  boolean startwith = true;
+  int j;
+  const char compare[] = "/set/";
+  for(j = 0; j < 5 && j < strlen(url); j++) {
+    if(!url[j] == compare[j]) startwith = false; 
+  }
+  if(j >= strlen(url)) startwith = false;
+  
+  if(startwith) {
     // check if trailing slash
-    int check = url.indexOf('/',5);
+    boolean found = false;
+    for(j = 5; j < strlen(url) && found == false; j++) {
+      if(url[j] == '/') found = true;
+    }
+    int check;
+    if(found) check = j;
+    else check = -1;
+    
     debugSerial3.println(check, DEC);
     if(check == -1) return 404;
-    String targetTempString = url.substring(5,check);
+    String targetTempString = String(url).substring(5,check);
     float target = stringToInt(targetTempString);
     debugSerial3.println(target, 2);
     // try to set temp

@@ -375,7 +375,7 @@ char * getSuccesJsonResponse(boolean truefalse, char *reason) {
 
 int tryToSetTempTo(float target) {
   if(target > maxtemp || target < mintemp) {
-    strcat(jsonTemp, "minMaxTemp");
+    sprintf(jsonTemp, "minMaxTemp");
     return 1004;
   }
   else {

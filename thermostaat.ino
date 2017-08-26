@@ -79,7 +79,9 @@ SoftwareSerial mySerial(6, 7); // RX, TX
 NullSerial noDebug;
 #define debugSerial noDebug
 #define debugSerial2 noDebug
-#define debugSerial3 Serial
+#define debugSerial3 noDebug
+#define debugSerial4 Serial
+
 #define WifiSerial mySerial
 
 char jsonTemp[10];
@@ -91,6 +93,7 @@ void setup(void) {
   debugSerial.begin(9600);
   debugSerial2.begin(9600);
   debugSerial3.begin(9600);
+  debugSerial4.begin(9600);
   pinMode(relayPin, OUTPUT);
   digitalWrite(relayPin, switchIs);
   lastSwitch = millis();
@@ -410,7 +413,7 @@ int switchURL(char * url) {
       if(url[j] == '/') found = true;
     }
     int check;
-    if(found) check = j;
+    if(found) check = j-1;
     else check = -1;
     
     debugSerial3.println(check, DEC);
@@ -430,6 +433,13 @@ int switchURL(char * url) {
 }
 
 float stringToInt(String dataLengthString) {
+  float result = dataLengthString.toFloat();
+  debugSerial4.print("Result: ");
+  debugSerial4.println(result, 2);
+  /*debugSerial4.print("String: ");
+  debugSerial4.println(dataLengthString);
+  debugSerial4.print("String length: ");
+  debugSerial4.println(dataLengthString.length());
   float dataLength = 0;
   int start = 0;
   boolean decimal = false;
@@ -437,26 +447,37 @@ float stringToInt(String dataLengthString) {
   if(dataLengthString.charAt(0) == '-') start = 1; // negative
   
   for(int i = start; i < dataLengthString.length(); i++) {
-    int character = dataLengthString.charAt(i);
+    char character = dataLengthString.charAt(i);
     // point?
-    if(character == '.') decimal = true;
+    if(character == '.') {
+      debugSerial4.println("decimal found");
+      decimal = true;
+    }
     else {
       if(!decimal) {
+        debugSerial4.println("Keer 10");
         dataLength *= 10;
         dataLength += character - 48;
-      }
-      if(decimal) {
+      } else
+       {
+        debugSerial4.println("Decimal");
         decimalPosition++;
         dataLength += (character - 48) / pow(10, decimalPosition);
       }
     }
+    debugSerial4.print("Number is now: ");
+    debugSerial4.println(dataLength);
   }
-
+  debugSerial4.println("Keer 10");
   // negative?
   if(start == 1) {
     dataLength *= -1;
+    debugSerial4.println("*-1");
   }
-  return dataLength;
+  debugSerial4.print("Number is now: ");
+  debugSerial4.println(dataLength);
+  */
+  return result;
 }
 
 void scrollLeft(float ch) {

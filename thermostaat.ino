@@ -233,10 +233,10 @@ void handleIPDMessage() {
     debugSerial3.print(":");
     debugSerial3.print(slash[j+(first+1)]);
     debugSerial3.print("-");
-    strcpy(url[j], slash[j+(first+1)]);
+    sprintf(url, "%s%s",url,slash[j+(first+1)]);
+    
   }
   
-  url[j + 1] =  '\0';
   slash = ""; 
   
   debugSerial3.print("URL: ");

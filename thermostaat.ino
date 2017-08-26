@@ -1,3 +1,5 @@
+#include <MemoryFree.h>
+
 class NullSerial : public Stream {
 public:
   virtual size_t write(uint8_t) { return (1); }
@@ -203,41 +205,40 @@ void handleIPDMessage() {
   
   debugSerial3.print("Id of incoming is ");
   debugSerial3.println(id);
-
+/*
   // now data length
   int lastchar = idlen.indexOf(':');
   String dataLengthString = idlen.substring(comma+1,lastchar);
   debugSerial2.print("Length is: ");
   debugSerial2.println(dataLengthString);
   //string to int
-  int dataLength = int(stringToInt(dataLengthString));
+  /*int dataLength = int(stringToInt(dataLengthString));
   
   debugSerial2.print("Length in integer: ");
   debugSerial2.println(dataLength, DEC);
-
+*/debugSerial3.print("freeMemory()=");
+  debugSerial3.println(freeMemory());
   String slash = WifiSerial.readStringUntil('\n');
   debugSerial3.println("slash");
   debugSerial3.println(slash);
 
   int first = slash.indexOf(' ');
-  int last = slash.lastIndexOf(' ');
+  slash = slash.substring(first+1);
+  first = -1;
+  int last = slash.indexOf(' ');
+  debugSerial3.print("freeMemory()=");
+  debugSerial3.println(freeMemory());
   char * url = (char *) malloc(13);
-  debugSerial3.print("first");
-  debugSerial3.println(first);
-  debugSerial3.print("last");
-  debugSerial3.println(last);
-
+  char * urltemp = (char *) malloc(13);
+  sprintf(url, "");
   // in url put substring first+1 to last
-  for(j = 0; j < (last - (first+1)) && j < 12; j++) {
-    debugSerial3.print(j+(first+1));
-    debugSerial3.print(":");
-    debugSerial3.print(slash[j+(first+1)]);
-    debugSerial3.print("-");
-    sprintf(url, "%s%s",url,slash[j+(first+1)]);
+  for(j = 0; (j < (last - (first+1))) && j < 12; j++) {
+    
+    sprintf(urltemp, "%s%c",url,slash.charAt(j+(first+1)));
+    sprintf(url, "%s",urltemp);
     
   }
-  
-  slash = ""; 
+
   
   debugSerial3.print("URL: ");
   debugSerial3.println(url);
@@ -254,6 +255,7 @@ void handleIPDMessage() {
   else debugSerial3.println("Senddata is zero!!");
   free(sendData);
   free(url);
+  free(urltemp);
 }
 
 void sendToVisitor(String idString, char * pageData) {
@@ -304,22 +306,13 @@ void sendToVisitor(String idString, char * pageData) {
 
 char * servePage(int urlNumber) {
   
-  char * datatest = (char *) malloc(88+32);
+  char * datatest = (char *) malloc(130);
   char * json;
   int contentLength = 0;
   sprintf(datatest, "HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\n<html><body>%d</body></html>", urlNumber);
 
   if(urlNumber == 1001) {
     sprintf(datatest, "frontpage");
-    
-    /*datatest = "HTTP/1.1 200 OK\n";
-    datatest += "Server: FablabFridge\n";
-    datatest += "Connection: close\n";
-    datatest += "Content-Type: text/html\n";
-    datatest += "\n";
-    datatest += "<html><body>";
-    datatest += "welkom";
-    datatest += "</body></html>";*/
   }
   if(urlNumber == 1002) {
     json = getTempJsonResponse();   
@@ -337,27 +330,43 @@ char * servePage(int urlNumber) {
   }      
   if(urlNumber == 1002 || urlNumber == 1003 || urlNumber == 1004) 
     sprintf(datatest, "HTTP/1.1 200 OK\nServer: FablabFridge\nConnection: close\nContent-Type: application/json\n\n%s", json);
+    free(json);
 
   if(urlNumber == 404) {    
     sprintf(datatest, "HTTP/1.1 404 Not Found\nServer: FablabFridge\nConnection: close\nContent-Type: text/html\n\nniet gevonden");
   }      
-  free(json);
+  
   return datatest;
 }
-
+char *ftoa(char *a, double f, int precision)
+{
+ long p[] = {0,10,100,1000,10000,100000,1000000,10000000,100000000};
+ 
+ char *ret = a;
+ long heiltal = (long)f;
+ itoa(heiltal, a, 10);
+ while (*a != '\0') a++;
+ *a++ = '.';
+ long desimal = abs((long)((f - heiltal) * p[precision]));
+ itoa(desimal, a, 10);
+ return ret;
+}
 char * getTempJsonResponse() {
   
   char * json = (char *) malloc ((11+3+6+1));
-  sprintf(json, "{ \"temp\": %f3.2 }", temperature);
+  char * temp = (char *) malloc (3+1+2);
+  temp = ftoa(temp, temperature, 2);
+  sprintf(json, "{ \"temp\": %s }", temp);
   debugSerial3.print("JSON: ");
   debugSerial3.println(json);
+  free(temp);
   return json;
 }
 
 char * getSuccesJsonResponse(boolean truefalse, char *reason) {
   char * json = (char *) malloc ((30+10+1));
  
-  sprintf(json, "{ \"success\": %b, \"reason\": \"%s\" }", truefalse, reason);
+  sprintf(json, "{ \"success\": %c, \"reason\": \"%s\" }", ((char)truefalse)+48, reason);
   
   debugSerial3.print("JSON: ");
   debugSerial3.println(json);
@@ -377,11 +386,11 @@ int tryToSetTempTo(float target) {
 
 int switchURL(char * url) {
   // main page?
-  if(strcmp(url, "/")) {    
+  if(strcmp(url, "/") == 0) {    
     return 1001; // start page
   }
   // get action?
-  if(strcmp(url, "/get/temp/")) {    
+  if(strcmp(url, "/get/temp/") == 0) {    
     return 1002; // temp get page
   }
   

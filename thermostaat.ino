@@ -14,11 +14,11 @@ public:
 };
 
 #include <stdio.h> 
-float temperature = 18.0;
+float temperature = 25.0;
 unsigned long lastSwitch;
 unsigned long minLoopTime = 1000;
 unsigned long timeBetweenSwitches = 10000; // 10 secs
-float targetTemp = 23.0;
+float targetTemp = 18.0;
 int relayPin = 4;
 int buzzerPin = 2;
 boolean switchIs = LOW;
@@ -77,10 +77,10 @@ uint16_t samples[NUMSAMPLES];
 #include "SoftwareSerial.h"
 SoftwareSerial mySerial(6, 7); // RX, TX
 NullSerial noDebug;
-#define debugSerial noDebug
+#define debugSerial Serial
 #define debugSerial2 noDebug
 #define debugSerial3 noDebug
-#define debugSerial4 Serial
+#define debugSerial4 noDebug
 
 #define WifiSerial mySerial
 
@@ -436,47 +436,7 @@ float stringToInt(String dataLengthString) {
   float result = dataLengthString.toFloat();
   debugSerial4.print("Result: ");
   debugSerial4.println(result, 2);
-  /*debugSerial4.print("String: ");
-  debugSerial4.println(dataLengthString);
-  debugSerial4.print("String length: ");
-  debugSerial4.println(dataLengthString.length());
-  float dataLength = 0;
-  int start = 0;
-  boolean decimal = false;
-  int decimalPosition = 0;
-  if(dataLengthString.charAt(0) == '-') start = 1; // negative
   
-  for(int i = start; i < dataLengthString.length(); i++) {
-    char character = dataLengthString.charAt(i);
-    // point?
-    if(character == '.') {
-      debugSerial4.println("decimal found");
-      decimal = true;
-    }
-    else {
-      if(!decimal) {
-        debugSerial4.println("Keer 10");
-        dataLength *= 10;
-        dataLength += character - 48;
-      } else
-       {
-        debugSerial4.println("Decimal");
-        decimalPosition++;
-        dataLength += (character - 48) / pow(10, decimalPosition);
-      }
-    }
-    debugSerial4.print("Number is now: ");
-    debugSerial4.println(dataLength);
-  }
-  debugSerial4.println("Keer 10");
-  // negative?
-  if(start == 1) {
-    dataLength *= -1;
-    debugSerial4.println("*-1");
-  }
-  debugSerial4.print("Number is now: ");
-  debugSerial4.println(dataLength);
-  */
   return result;
 }
 

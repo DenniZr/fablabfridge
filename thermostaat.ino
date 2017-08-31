@@ -77,10 +77,10 @@ uint16_t samples[NUMSAMPLES];
 #include "SoftwareSerial.h"
 SoftwareSerial mySerial(6, 7); // RX, TX
 NullSerial noDebug;
-#define debugSerial Serial
-#define debugSerial2 noDebug
-#define debugSerial3 noDebug
-#define debugSerial4 noDebug
+#define debugSerial noDebug
+#define debugSerial2 Serial
+#define debugSerial3 Serial
+#define debugSerial4 Serial
 
 #define WifiSerial mySerial
 
@@ -280,7 +280,7 @@ void sendToVisitor(String idString, char * pageData) {
   if(!strlen(pageData) == 0) {
     char * cipsend = (char *) malloc(19);
     int len = strlen(pageData);
-    if(strcmp(pageData, "frontpage") == 0) len = 642;
+    if(strcmp(pageData, "frontpage") == 0) len = 642+11;
     sprintf(cipsend, "AT+CIPSEND=%s,%d",id, len);
     WifiSerial.println(cipsend);
     free(cipsend);
